@@ -1,14 +1,15 @@
 const CANNON = require('cannon')
 const THREE = require('three')
 import './debug.js'
-import './style.scss'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
 var dt = 1/60, R = 0.2;
+let particleSystem
+let geometryPB
 let plane2
             var clothMass = 1;  // 1 kg in total
             var clothSize = 1; // 1 meter
-            var Nx = 24;
+            var Nx = 12;
             var Ny = 12;
             var mass = clothMass / Nx*Ny;
 
@@ -29,11 +30,17 @@ let plane2
                 };
             }
 
+            function randomMat(){
+              return new THREE.PointsMaterial( { color: `rgba(${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},1)`, specular: `rgba(${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},1)` , shininess: 100, side: THREE.DoubleSide, opacity: 0.2, size: 5.3,
+                transparent: true } )
+            }
 
             var container, stats;
             var camera, scene, renderer;
 
+            var clothGeometry;
             var sphereMesh, sphereBody;
+            var object;
             var particles = [];
             var world;
 
@@ -44,7 +51,7 @@ let plane2
             function initCannon(){
                 world = new CANNON.World();
                 world.broadphase = new CANNON.NaiveBroadphase();
-                world.gravity.set(0,-9.82,0);
+                world.gravity.set(2,-9.82,0);
                 world.solver.iterations = 20;
 
                 // Materials
@@ -63,9 +70,9 @@ sphereMaterial,
                 world.addContactMaterial(clothSphereContactMaterial);
 
                 // Create sphere
-                var sphereShape = new CANNON.Sphere(ballSize*0.3);
+                var sphereShape = new CANNON.Sphere(ballSize*1.3);
                 sphereBody = new CANNON.Body({
-                    mass: 3
+                    mass: 1
                 });
                 sphereBody.addShape(sphereShape);
                 sphereBody.position.set(0,0,0);
@@ -125,7 +132,21 @@ sphereMaterial,
                 scene.add( camera );
 
 
-
+                // Controls
+                // controls = new THREE.TrackballControls( camera );
+                //
+                // controls.rotateSpeed = 1.0;
+                // controls.zoomSpeed = 1.2;
+                // controls.panSpeed = 0.8;
+                //
+                // controls.noZoom = false;
+                // controls.noPan = false;
+                //
+                // controls.staticMoving = true;
+                // controls.dynamicDampingFactor = 0.3;
+                //
+                // controls.keys = [ 65, 83, 68 ];
+                //
 
                 // lights
                 var light, materials;
@@ -143,11 +164,76 @@ sphereMaterial,
 
                 scene.add( light );
 
+                /*
+                light = new THREE.DirectionalLight( 0xffffff, 0.35 );
+                light.position.set( 0, -1, 0 );
+                scene.add( light );
+                */
+
+                // cloth material
 
 
+                var texture = new THREE.TextureLoader().load( 'assets/tom.png' );
+                var particleCount = 169,
+    particles = new THREE.Geometry(),
+    pMaterial = new THREE.PointsMaterial({
+      color: 0xFFFFFF,
+      size: 1.3,
+      map: texture
+    });
+// now create the individual particles
+for (var p = 0; p < particleCount; p++) {
+
+  // create a particle with random
+  // position values, -250 -> 250
+  var pX = Math.random() * 500 - 250,
+      pY = Math.random() * 500 - 250,
+      pZ = Math.random() * 500 - 250,
+      particle =
+        new THREE.Vector3(pX, pY, pZ)
+      ;
+
+  // add it to the geometry
+  particles.vertices.push(particle);
+}
+
+// create the particle system
+ particleSystem = new THREE.ParticleSystem(
+    particles,
+    randomMat());
+
+    particleSystem.geometry.normalsNeedUpdate = true;
+    particleSystem.geometry.verticesNeedUpdate = true;
+    particleSystem.matrixWorldNeedsUpdate = true
+    particleSystem.elementsNeedUpdate = true;
+// add it to the scene
+//console.log(particleSystem)
+// scene.add(particleSystem);
 
 
+                var clothMaterial = new THREE.MeshPhongMaterial( {
+                    alphaTest: 0.5,
+                    ambient: 0x000000,
+                    color: 0xffffff,
+                    specular: 0x333333,
+                    emissive: 0x222222,
+                    //shininess: 5,
+                     map: texture,
+                    side: THREE.DoubleSide
+                } );
 
+                // cloth geometry
+                clothGeometry = new THREE.ParametricBufferGeometry( clothFunction, Nx, Ny, true );
+                clothGeometry.dynamic = true;
+                clothGeometry.computeFaceNormals();
+                console.log(clothGeometry)
+                // cloth mesh
+                object = new THREE.Mesh(clothGeometry, material);
+                object.position.set(0, 0, 0);
+                object.castShadow = true;
+                object.receiveShadow = true;
+                scene.add( object );
+                console.log(object)
 
                 // sphere
                 var ballGeo = new THREE.SphereGeometry( ballSize, 20, 20 );
@@ -159,7 +245,9 @@ sphereMaterial,
                 // scene.add( sphereMesh );
 
 
- renderer = new THREE.WebGLRenderer( {alpha: true } );                renderer.setSize( window.innerWidth, window.innerHeight );
+                renderer = new THREE.WebGLRenderer( { antialias: true } );
+                renderer.setSize( window.innerWidth, window.innerHeight );
+                renderer.setClearColor( scene.fog.color );
 
                 container.appendChild( renderer.domElement );
 
@@ -184,33 +272,50 @@ sphereMaterial,
             const cannonDebugRenderer = new THREE.CannonDebugRenderer( scene, world )
             var controls = new OrbitControls( camera, renderer.domElement );
 
-              var texture = new THREE.TextureLoader().load( 'assets/test.png' );
-            var geometry = new THREE.PlaneGeometry( 2, 1, 24, 12 );
+              var texture = new THREE.TextureLoader().load( 'assets/test2.png' );
+            var geometry = new THREE.PlaneGeometry( 2, 1, 12, 12 );
             var material = new THREE.MeshBasicMaterial( {color: 0xFFFFFF, side: THREE.DoubleSide, map: texture} );
             plane2 = new THREE.Mesh( geometry, material );
+            // plane2.computeFaceNormals();
+            // plane2.computeVertexNormals();
             plane2.matrixWorldNeedsUpdate = true
             plane2.elementsNeedUpdate = true
             plane2.verticesNeedUpdate = true
+            console.log(geometry)
+            console.log(plane2)
             scene.add( plane2 );
 
-            console.log(scene)
-            function animate() {
 
+            function animate() {
                 requestAnimationFrame( animate );
                 // controls.update();
                 world.step(dt);
                 var t = world.time;
                 sphereBody.position.set(R * Math.sin(t), 0, R * Math.cos(t));
                 render();
-
-
             }
-
+            clothGeometry.computeFaceNormals();
+            clothGeometry.computeVertexNormals();
+            clothGeometry.elementsNeedUpdate = true
+            clothGeometry.verticesNeedUpdate = true
+            console.log(clothGeometry)
+            //console.log(particles)
             function render() {
 
+              clothGeometry.computeFaceNormals();
+              clothGeometry.computeVertexNormals();
 
-
-
+              clothGeometry.normalsNeedUpdate = true;
+              clothGeometry.verticesNeedUpdate = true;
+                for ( var i = 0, il = Nx+1; i !== il; i++ ) {
+                    for ( var j = 0, jl = Ny+1; j !== jl; j++ ) {
+                        var idx = j*(Nx+1) + i;
+                        if(  particleSystem.geometry.vertices[idx]){
+                        particleSystem.geometry.vertices[idx].copy(particles[i][j].position);
+                        // clothGeometry.attributes.position[idx].copy(particles[i][j].position)
+                      }
+                    }
+                }
                 for ( var i = 0, il = Nx+1; i !== il; i++ ) {
                     for ( var j = 0, jl = Ny+1; j !== jl; j++ ) {
                         var idx = j*(Nx+1) + i;
@@ -223,7 +328,8 @@ sphereMaterial,
                     }
                 }
 
-
+                clothGeometry.computeFaceNormals();
+                clothGeometry.computeVertexNormals();
                 if(plane2){
 
                 plane2.elementsNeedUpdate = true
@@ -231,11 +337,17 @@ sphereMaterial,
                 plane2.matrixWorldNeedsUpdate = true
               }
 
-
+                particleSystem.geometry.normalsNeedUpdate = true;
+                particleSystem.geometry.verticesNeedUpdate = true;
+                particleSystem.matrixWorldNeedsUpdate = true
+                particleSystem.elementsNeedUpdate = true;
+                // particleSystem.rotation.x+=0.01
                 sphereMesh.position.copy(sphereBody.position);
                 if(cannonDebugRenderer){
     // cannonDebugRenderer.update()
   }
+  // console.log(particles[0][2].position)
+  // console.log(particleSystem.geometry.vertices[15])
                 renderer.render( scene, camera );
 
             }

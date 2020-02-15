@@ -1,0 +1,46 @@
+@font-face {
+  font-family: "Art";
+  src: url("assets/ArtDystopia.otf") format("opentype");
+}
+
+
+
+body{
+  font-family: 'Art';
+font-size: 5vh;
+text-align: center;
+  text-transform: uppercase;
+
+
+
+  background: linear-gradient(139deg, #010009, #ffffff, #000000, #ffffff);
+  background-size: 800% 800%;
+
+  -webkit-animation: AnimationName 10s ease infinite;
+  -moz-animation: AnimationName 10s ease infinite;
+  animation: AnimationName 10s ease infinite;
+
+  @-webkit-keyframes AnimationName {
+      0%{background-position:14% 0%}
+      50%{background-position:87% 100%}
+      100%{background-position:14% 0%}
+  }
+  @-moz-keyframes AnimationName {
+      0%{background-position:14% 0%}
+      50%{background-position:87% 100%}
+      100%{background-position:14% 0%}
+  }
+  @keyframes AnimationName {
+      0%{background-position:14% 0%}
+      50%{background-position:87% 100%}
+      100%{background-position:14% 0%}
+  }
+}
+
+#text{
+  position: absolute;
+  top:10vh;
+  color: blue;
+  font-size: 2em;
+  background-color: rgba(0,0,0,0)
+}
